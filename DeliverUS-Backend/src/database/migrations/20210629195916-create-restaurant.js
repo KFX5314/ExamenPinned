@@ -30,6 +30,11 @@ module.exports = {
         defaultValue: 0.0,
         type: Sequelize.DOUBLE
       },
+      pinnedAt: {
+        allowNull: true,
+        defaultValue: null,
+        type: Sequelize.DATE
+      },
       averageServiceMinutes: {
         allowNull: true,
         type: Sequelize.DOUBLE

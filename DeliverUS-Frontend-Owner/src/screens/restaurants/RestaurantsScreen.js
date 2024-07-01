@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { StyleSheet, FlatList, Pressable, View } from 'react-native'
 
-import { getAll, remove } from '../../api/RestaurantEndpoints'
+import { getAll, remove, togglePin } from '../../api/RestaurantEndpoints'
 import ImageCard from '../../components/ImageCard'
 import TextSemiBold from '../../components/TextSemibold'
 import TextRegular from '../../components/TextRegular'
@@ -17,6 +17,7 @@ export default function RestaurantsScreen ({ navigation, route }) {
   const [restaurants, setRestaurants] = useState([])
   const [restaurantToBeDeleted, setRestaurantToBeDeleted] = useState(null)
   const { loggedInUser } = useContext(AuthorizationContext)
+  const [toBePinned, setToBePinned] = useState(null)
 
   useEffect(() => {
     if (loggedInUser) {
@@ -39,7 +40,27 @@ export default function RestaurantsScreen ({ navigation, route }) {
         {item.averageServiceMinutes !== null &&
           <TextSemiBold>Avg. service time: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{item.averageServiceMinutes} min.</TextSemiBold></TextSemiBold>
         }
-        <TextSemiBold>Shipping: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{item.shippingCosts.toFixed(2)}€</TextSemiBold></TextSemiBold>
+        <View style={[{flex:1,flexDirection:'row', justifyContent: 'right'}]}>
+          <TextSemiBold>Shipping: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{item.shippingCosts.toFixed(2)}€</TextSemiBold></TextSemiBold>
+
+          <Pressable
+              onPress={() => {setToBePinned(item)}
+              } style={[{ flex: 1, flexDirection: 'row', justifyContent: 'right' }]}>
+            <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'right' }]}>
+                <MaterialCommunityIcons
+                name={item.pinnedAt ? 'pin' : 'pin-outline'}
+                color={GlobalStyles.brandSecondaryTap}
+                size={24}
+              />
+            </View>
+          </Pressable>
+        </View>
+
+
+
+
+
+
         <View style={styles.actionButtonsContainer}>
           <Pressable
             onPress={() => navigation.navigate('EditRestaurantScreen', { id: item.id })
@@ -153,6 +174,40 @@ export default function RestaurantsScreen ({ navigation, route }) {
     }
   }
 
+  const pinRestaurant = async (restaurant) => {
+    try {
+      await togglePin(restaurant.id)
+      await fetchRestaurants()
+      setToBePinned(null)
+      if(restaurant.pinnedAt !== null)
+        {
+        showMessage({
+          message: `Restaurant ${restaurant.name} succesfully unpinned`,
+          type: 'success',
+          style: GlobalStyles.flashStyle,
+          titleStyle: GlobalStyles.flashTextStyle
+        })
+      }
+      else{
+        showMessage({
+          message: `Restaurant ${restaurant.name} succesfully pinned`,
+          type: 'success',
+          style: GlobalStyles.flashStyle,
+          titleStyle: GlobalStyles.flashTextStyle
+        })
+      }
+    } catch (error) {
+      console.log(error)
+      setToBePinned(null)
+      showMessage({
+        message: `Restaurant ${restaurant.name} could not be pinned.`,
+        type: 'error',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    }
+  }
+
   return (
     <>
     <FlatList
@@ -170,6 +225,14 @@ export default function RestaurantsScreen ({ navigation, route }) {
         <TextRegular>The products of this restaurant will be deleted as well</TextRegular>
         <TextRegular>If the restaurant has orders, it cannot be deleted.</TextRegular>
     </DeleteModal>
+
+    <DeleteModal
+      isVisible={toBePinned !== null}
+      onCancel={() => setToBePinned(null)}
+      onConfirm={() => pinRestaurant(toBePinned)}>
+        <TextRegular>Confirm action</TextRegular>
+    </DeleteModal>
+
     </>
   )
 }

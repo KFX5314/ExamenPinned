@@ -1,4 +1,6 @@
 import { Restaurant, Product, RestaurantCategory, ProductCategory } from '../models/models.js'
+import { Op } from 'sequelize'
+
 
 const index = async function (req, res) {
   try {
@@ -19,7 +21,7 @@ const index = async function (req, res) {
   }
 }
 
-const indexOwner = async function (req, res) {
+/*const indexOwner = async function (req, res) {
   try {
     const restaurants = await Restaurant.findAll(
       {
@@ -28,16 +30,54 @@ const indexOwner = async function (req, res) {
         include: [{
           model: RestaurantCategory,
           as: 'restaurantCategory'
+        }]//,
+        //order: [['pinnedAt','ASC']]
+      })
+    res.json(restaurants)
+  } catch (err) {
+    res.status(500).send(err)
+  }
+}*/
+
+const indexOwner = async function (req, res) {
+  try {
+    const pinned = await Restaurant.findAll(
+      {
+        attributes: { exclude: ['userId'] },
+        where: { userId: req.user.id, pinnedAt:{ [Op.ne]: null }},
+        include: [{
+          model: RestaurantCategory,
+          as: 'restaurantCategory'
+        }],
+        order: [['pinnedAt','ASC']]
+      })
+    const notPinned = await Restaurant.findAll(
+      {
+        attributes: { exclude: ['userId'] },
+        where: { userId: req.user.id, pinnedAt:{[Op.eq]: null }},
+        include: [{
+          model: RestaurantCategory,
+          as: 'restaurantCategory'
         }]
       })
+    const restaurants = [...pinned, ...notPinned]
     res.json(restaurants)
   } catch (err) {
     res.status(500).send(err)
   }
 }
 
+
 const create = async function (req, res) {
-  const newRestaurant = Restaurant.build(req.body)
+  const newRestaurant = Restaurant.build(req.body)//TODO pq sobra el campo pinned, no esta en la clase
+  if(req.body.pinned === true)
+    {
+      newRestaurant.pinnedAt = new Date()
+    }
+  else
+    {
+      newRestaurant.pinnedAt = null
+    }
   newRestaurant.userId = req.user.id // usuario actualmente autenticado
   try {
     const restaurant = await newRestaurant.save()
@@ -95,12 +135,30 @@ const destroy = async function (req, res) {
   }
 }
 
+const togglePin = async function (req, res) {
+  try {
+    const restaurant = await Restaurant.findByPk(req.params.restaurantId)
+    if (restaurant.pinnedAt !== null)
+      {
+        await restaurant.update({pinnedAt: null})//TODO
+      }
+      else
+      {
+        await restaurant.update({pinnedAt: new Date()})
+      }
+    res.json(restaurant)
+  } catch (err) {
+    res.status(500).send(err)
+  }
+}
+
 const RestaurantController = {
   index,
   indexOwner,
   create,
   show,
   update,
-  destroy
+  destroy,
+  togglePin
 }
 export default RestaurantController

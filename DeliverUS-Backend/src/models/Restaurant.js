@@ -45,6 +45,11 @@ const loadModel = (sequelize, DataTypes) => {
       allowNull: false,
       type: DataTypes.DOUBLE
     },
+    pinnedAt: {
+      allowNull: true,
+      defaultValue: null,
+      type: DataTypes.DATE
+    },
     averageServiceMinutes: DataTypes.DOUBLE,
     email: DataTypes.STRING,
     phone: DataTypes.STRING,
